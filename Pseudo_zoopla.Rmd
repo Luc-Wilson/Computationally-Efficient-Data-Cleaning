@@ -1,0 +1,52 @@
+---
+title: "PsuedoData_DataRetrieval"
+author: "Luc Wilson"
+date: "2024-02-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+# loading required packages
+library(tidyverse)
+library(sf)
+library(sp)
+```
+
+```{r}
+# creating random point geometries for pseudo property locations
+
+# assigning a centre point in London
+origin = c(-0.118092, 51.509865)
+# setting random seed
+set.seed(0)
+# number of points
+num_points = 1000
+
+# generate points with random variation within a given buffer
+buffer_radius = 0.015
+buffer = st_buffer(st_point(c(origin[1], origin[2])), buffer_radius) 
+points = st_sample(buffer, size = num_points)
+
+# setting points crs 
+st_crs(points) = st_crs("EPSG:4326")
+```
+
+```{r}
+# creating psuedo_zoopla data frame with 'points' and other pseudo data
+psuedo_zoopla = data.frame(
+  ID = 1:num_points, # unique ID
+  Price = sample(150000:1500000, num_points, replace = TRUE), # random price sampling between 150k and 1.5 mil
+  num_rooms = round(pmax(rnorm(num_points, mean = 3, sd = 1),1)),# integers normally distributed around 3 with a minimum of 1
+  num_baths = round(pmax(rnorm(num_points, mean = 2, sd = 1),1)),# integers normally distributed around 2 with a minimum of 1
+  date = sample(seq(as.Date('2011-01-01'), as.Date('2019-12-31'), by = '1 day'), num_points, replace = TRUE),# random date between 2011 and 2019
+  geometry = st_geometry(points) # using 'points' for geometries
+)
+
+# write as GeoJSON
+# st_write(psuedo_zoopla, "pseudo_zoopla.geojson")
+```
+
