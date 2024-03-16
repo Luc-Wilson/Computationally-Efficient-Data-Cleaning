@@ -1,0 +1,77 @@
+---
+title: "GWR_zoopla"
+author: "Luc Wilson"
+date: "2024-02-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# setting working directory
+setwd("C:/Users/lewil/OneDrive - University of Bristol/Msc Geographic Data Science & Spatial Analytics/Mapping and Modelling in R/Assessment1")
+```
+
+```{r, message=FALSE}
+# loading required packages
+library(tidyverse)
+library(sf) 
+library(ggspatial)
+library(spgwr)
+```
+
+```{r}
+# read in data created in Python
+final_zoopla <- st_read("final_zoopla.geojson")
+```
+
+```{r}
+# converting sf object to a SpatialPointsDataFrame for use in gwr()
+final_zoopla_sp <- as(final_zoopla, "Spatial")
+```
+
+```{r}
+# GWR model
+GWR_zoopla <- gwr(Price~num_rooms+num_baths+date+Rate+Cost, 
+            data=final_zoopla_sp,
+            bandwidth=50, # example value - an be optimised using gwr.sel
+            gweight=gwr.bisquare, # common weighting method
+            hatmatrix=TRUE # needed for point data
+           )
+GWR_zoopla
+```
+
+```{r, fig.align='center'}
+# plotting results
+# extracting the R2 for the coeeficients (measure of model accurancy)
+coefficients <- GWR_zoopla$SDF$localR2
+
+# converting to sf for plotting
+gwr_sf <- st_as_sf(GWR_zoopla$SDF)
+
+# setting lab title
+lab_title = expression("Local " ~ (R^{2}))
+
+# setting north arrow dimensions
+dim = unit(1, "cm")
+
+# Plot coefficients for each variable
+ggplot(gwr_sf, aes(colour = coefficients)) +
+  annotation_map_tile(type = 'osm', zoom = 14) +
+  geom_sf(size = 1.5) +
+ # scale_color_viridis_c() +
+  scale_color_gradientn(colors = c("red","blue")) + # colour friendly palette
+  labs(title = "GWR Map",
+       color = lab_title) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),# central title
+        axis.text.x = element_text(angle = 45, hjust = 1)) + # rotating x coord labels to not overlap
+  annotation_scale(location = 'bl', 
+                   width_hint = 0.2) + 
+  annotation_north_arrow(location = 'tr', 
+                         which_north = 'true', 
+                         height = dim,
+                         width = dim)
+```
+
+
